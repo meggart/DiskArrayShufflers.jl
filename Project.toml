@@ -3,6 +3,11 @@ uuid = "3b0b84d9-d1f2-47aa-a642-ec1eed09c509"
 authors = ["Fabian Gans <fgans@bgc-jena.mpg.de> and contributors"]
 version = "0.1.0"
 
+[deps]
+DiskArrays = "3c3547ce-8d99-4f5e-a174-61eb10b00ae3"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Zarr = "0a941bbe-ad1d-11e8-39d9-ab76183a1d99"
+
 [compat]
 julia = "1"
 
