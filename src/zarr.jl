@@ -7,7 +7,7 @@ struct DiskArrayShuffleStore{S<:DiskArrayShuffler} <: AbstractStore
 end
 Base.show(io::IO,s::DiskArrayShuffleStore) = print(io,"Shuffled Store")
 function DiskArrayShuffleStore(s::DiskArrayShuffler; name = "batches", attrs = Dict(),nbatches=100)
-    onear = mysampler.currentcoll[].chunkviews |> first |> first
+    onear = s.currentcoll[].chunkviews |> first |> first
     soutput = size(onear)
     cs = (soutput..., s.sampler.batchsize)
     soutput = (cs...,nbatches)
