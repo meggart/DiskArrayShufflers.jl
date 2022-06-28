@@ -5,15 +5,15 @@ struct DiskArrayShuffleStore{S<:DiskArrayShuffler} <: AbstractStore
     name::String
     metadata::Dict{String,Vector{UInt8}}
 end
-Base.show(io::IO,s::DiskArrayShuffleStore) = print(io,"Shuffled Store")
-function DiskArrayShuffleStore(s::DiskArrayShuffler; name = "batches", attrs = Dict(),nbatches=100)
+Base.show(io::IO,s::DiskArrayShuffleStore) = print(io,"Shuffled Store")s
+function DiskArrayShuffleStore(s::DiskArrayShuffler; name = "batches", attrs = Dict())
     onear = s.currentcoll[].chunkviews |> first |> first
     soutput = size(onear)
     cs = (soutput..., s.sampler.batchsize)
-    soutput = (cs...,nbatches)
+    si = (soutput..., s.sampler.batchsize)
     #Create a mock Zarr array to contain the metadata
     g = zgroup(Zarr.DictStore())
-    zcreate(eltype(onear),g,name,soutput..., compressor=Zarr.NoCompressor(), attrs=attrs)
+    zcreate(eltype(onear),g,name,si...,chunks = cs,compressor=Zarr.NoCompressor(), attrs=attrs)
     Zarr.consolidate_metadata(g)
     DiskArrayShuffleStore(s,name,g.storage.a)
 end
@@ -26,10 +26,11 @@ function Base.getindex(s::DiskArrayShuffleStore,i::AbstractString)
     else
         schunk = split(i,'/')[end]
         chunk = parse.(Int,split(schunk,'.'))
-        all(iszero,chunk[2:end]) || return nothing
+        all(iszero,chunk) || return nothing
         r = readbatch(s.s)
         nd = ndims(first(r))
         rone = reduce((i,j)->cat(i,j,dims=nd+1),r)
+
         return collect(vec(reinterpret(UInt8,rone)))
     end
 end

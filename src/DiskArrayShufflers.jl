@@ -63,12 +63,14 @@ function FullSliceSampler(sd::Int...;batchsize=100, nchunks=10,batchespercoll=10
 end
 
 function create_new_chunklist(s::FullSliceSampler{SD}, a, c::GridChunks) where SD
+    @debug "Started creating new chunk list"
     chunkinds = sample(c,s.nchunks,replace=false)
     data = [a[ci...] for ci in chunkinds]
     isinsampledim = [i ∉ SD ? true : Colon() for i in 1:ndims(a)]
     data_views = PickAxisArray.(data, Ref(isinsampledim)); 
     bi = [getbatchinds(s.batchsize,data_views) for _ in 1:s.batchespercoll]
     bl = BatchIndexList(bi,Ref(1),ReentrantLock())
+    @debug "New chunk list ready"
     ChunkCollection(data_views, bl)
 end
 
@@ -88,18 +90,22 @@ function DiskArrayShuffler(parent, sampler; chunks::GridChunks = DiskArrays.each
     DiskArrayShuffler(parent,chunks,Ref(coll),Ref(next),sampler,ReentrantLock())
 end
 function readbatch(s::DiskArrayShuffler)
+    @debug "Getting batch"
     r = getbatch(s.currentcoll[])
     if r !== nothing
+        @debug "Serving batch from current chunk"
         return r
     else
         if trylock(s.lock)
             @debug "Exchanging chunk collection"
             s.currentcoll[] = fetch(s.nextcoll[])
-            s.nextcoll[] = @async create_new_chunklist(s.sampler, s.parent, s.parentchunks)
+            s.nextcoll[] = @async create_new_chunklist($s.sampler, $s.parent, $s.parentchunks)
             unlock(s.lock)
         else
+            @debug "Locked, waiting for a moment"
             sleep(0.2)
         end
+        @debug "Try again to read next batch"
         return readbatch(s)
     end
 end
